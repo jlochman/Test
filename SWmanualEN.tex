@@ -1,4 +1,4 @@
-\documentclass[a4paper,11pt,twoside]{book}
+\documentclass[a4paper,11pt,oneside]{report}
 \usepackage[cp1250]{inputenc}  
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
@@ -7,6 +7,22 @@
 \usepackage{nohyperref}
 \usepackage{multirow}
 \usepackage{amsthm}
+\usepackage{setspace}
+
+\makeatletter
+\def\@makechapterhead#1{%
+  \vspace*{50\p@}%
+  {\parindent \z@ \raggedright \normalfont
+    %\ifnum \c@secnumdepth >\m@ne
+    %    \huge\bfseries \@chapapp\space \thechapter
+    %    \par\nobreak
+    %    \vskip 20\p@
+    %\fi
+    \interlinepenalty\@M
+    \Huge \bfseries #1\par\nobreak
+    \vskip 40\p@
+  }}
+  \makeatother
 
 \pdfminorversion=4
 
@@ -40,11 +56,10 @@
 \clearpage
 \pagenumbering{roman}
 \setcounter{page}{1}
-\tableofcontents 
 
-\newpage
-\thispagestyle{empty}
-~
+\begin{spacing}{0.9}
+  \tableofcontents
+\end{spacing}
 
 \newpage
 \clearpage
@@ -862,7 +877,7 @@ Before the measurement starts, it is needed to choose, where the measurement
 will be added. Basically, there are two possibilities
 
 \begin{enumerate}
-  \item \textbf{Add a Partial Measurement to an Existing Measurement}
+  \item \textbf{Add a Partial Measurement to an Existing Measurement} \\
     You have a sample, which was already measured and the measurement was
     successfully saved and you want to add to this measurement a new partial
     measurement.
@@ -872,7 +887,7 @@ will be added. Basically, there are two possibilities
     Partial Measurement} button in the \textit{Measurement Control Panel}
     (Section~\ref{sec:MeasurementControlPanel}).
 
-  \item \textbf{Start a New Measurement}
+  \item \textbf{Start a New Measurement} \\
     You have a new sample, which was not measured yet. By pressing the
     \textit{Create a New Measurement} button in the \textit{Top Panel}
     (it is the first button, Section~\ref{sec:TopPanel}), a new measurement is
