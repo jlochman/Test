@@ -1,0 +1,1008 @@
+\documentclass[a4paper,11pt,twoside]{book}
+\usepackage[cp1250]{inputenc}  
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{url}
+%\usepackage{hyperref}
+\usepackage{nohyperref}
+\usepackage{multirow}
+\usepackage{amsthm}
+
+\pdfminorversion=4
+
+\newtheoremstyle{named}{}{}{\slshape}{}{\bfseries}{:}{.5em}{\thmnote{#3}}
+\theoremstyle{named}
+\newtheorem*{namedtheorem}{Theorem}
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\begin{center}
+
+  \vspace*{40mm}
+
+  {\huge \bf Software Manual for PM-04n}
+
+  \vfill
+
+  {\large
+   \begin{tabular}{ll}
+     Author:    & Ing. Jan Lochman \\
+     Email:     & jan.lochman@icloud.com \\
+     Telephone: & +420 604 658 921 \\
+     Company:   & VEZAS s.r.o. \\
+     Written:   & \today
+   \end{tabular}
+  }
+\end{center}
+
+\clearpage
+\pagenumbering{roman}
+\setcounter{page}{1}
+\tableofcontents 
+
+\newpage
+\thispagestyle{empty}
+~
+
+\newpage
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+\markboth{INTRODUCTION}{}
+
+This text describes the software for PM-04n measuring instrument. Software is
+designed for controlling two PM-04n's simultaneously. Technically, in software,
+there are two almost independent windows for each PM-04n instrument. These
+windows share some configuration parameters and database, which stores the saved
+measurements, but the measuring procedures are completely separate.
+
+In the first Chapter, the hardware will be presented. This includes the
+requirements on the computer running the program and basic description of two
+regulators which are inside the PM-04n instrument, together with description of
+their communication with PC.
+
+The program is described in the second Chapter. Here, some remarks on
+installation are presented. There are some built-in constants, which user is not
+allowed to change - these constants will be presented in this Chapter as well.
+The biggest part of this Chapter is a description of graphical blocks of the
+program, so called GUI (graphical user interface).
+
+In the last Chapter, the instructions for measuring and calibration procedures
+are presented. These should provide an user everything, what he needs, to operate
+this software.
+
+
+\chapter{Hardware}
+\label{ch:Hardware}
+
+\section{Computer}
+
+Program is compiled as a 32-bit Windows application. It was successfully tested
+on both 32 and 64-bit versions of Windows XP, Windows 7 and Windows 8.1. It is
+not possible to run this program on different OS, such as Linux or OSX, without
+a proper Windows emulator.
+
+PC requirements depend on the version of Windows, you are running on PC,
+where you want this program to be installed. Generally, 2 GHz CPU, 2 GB RAM,
+1 GB Hard Drive free space, 256 MB Graphics Memory and Ethernet Connection
+should be enough for fluent run of the program, delivering enough disc space for
+storing thousands of measurements. 
+
+\section{Regulators}
+
+PM-04n instrument contains two regulators, through which the program reads the
+instrument status and controls the measurement. Their description follows in
+this Section.
+
+\subsection{Eurotherm e3508}
+\label{sec:Eurotherm}
+
+The first of these regulators, which can be seen on the front panel of the
+PM-04n instrument, is Eurotherm e3508 (Figure~\ref{fig:e3508Front}). The purpose
+of this regulator, is to control the furnace temperature, including the turning
+on/off the cooling ventilator and safety insurance to ensure the temperature in
+the furnace does not exceed the maximum allowed value. 
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=1]{Figures/Eurotherm.jpg}
+  \caption{Eurotherm e3508 front view}
+  \label{fig:e3508Front}
+\end{figure}
+
+Rare view of this regulator is shown in Figure~\ref{fig:e3508Rare}.
+Table~\ref{tab:EurothermConnections} shows the electrical connections, which are
+in PM-04n instrument in usage, together with their purpose. Safety relay turns
+the heating off, when the temperature in furnace exceeds $600\,^{\circ}{\rm C}$.
+The meaning of the remaining connections should be apparent. 
+
+Eurotherm has its own program, independent on the PC. This program
+controls, e.g., the turning ventilator on/off, turning the safety relay on/off or PID
+regulation of furnace heating which ensures, the desired temperature is reached
+effectively.
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    \hline
+    Connection  & Usage \\
+    \hline
+    1A:1B        & Furnace \\
+    2A:2B        & Ventilator \\
+    V+:V-        & Thermocouple \\
+    AB:AC        & Safety relay \\
+    HA..HF       & Ethernet \\
+    \hline
+  \end{tabular}
+  \caption{Eurotherm electrical connection.}
+  \label{tab:EurothermConnections}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.5]{Figures/EurothermRear.png}
+  \caption{Eurotherm e3508 rare view}
+  \label{fig:e3508Rare}
+\end{figure}
+
+Program reads/writes from/to e3508 the values on addresses shown in
+Table~\ref{tab:EurothermAddresses}. Here, ramp units are chosen to be
+$^{\circ}{\rm C}\,/\,{\rm min}$ and ramp speed defines a speed, by which
+the temperature in furnace should be increased until the desired temperature is
+reached. 
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    \hline
+    Address  & Meaning \\
+    \hline
+    $2$      & Reading thermocouple temperature \\
+    $3$      & Writing desired temperature  \\
+    $36$     & Writing ramp speed \\
+    $532$    & Writing ramp units \\
+    \hline
+  \end{tabular}
+  \caption{Eurotherm addresses used in the program.}
+  \label{tab:EurothermAddresses}
+\end{table}
+
+More information about this regulator can be found on the official pages of
+Eurotherm Company \url{http://www.eurotherm.com}. On these pages, the basic
+software package, caled \textit{iTools}, for Eurotherm devices can be
+downloaded. 
+
+\subsection{LabJack T7}
+\label{sec:LabJack}
+
+The second regulator, which can be found in PM-04n instrument, is LabJack~T7
+(Figure~\ref{fig:LabJackT7}). This regulator is hidden inside the PM-04n
+instrument and its purpose is to control the measuring head. This includes the
+reading the position of the head, controlling its movement up/down and the most
+importantly, LabJack controls the rotational motor and measures the disc
+rotational speed. 
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/LabJack.png}
+  \caption{LabJack T7}
+  \label{fig:LabJackT7}
+\end{figure}
+
+Connections, which are used, together with their usage description, are shown in
+Table~\ref{tab:LabJackConnection}. Rotational speed of the head is controlled by
+the voltage of the DC motor.
+
+\begin{table}
+  \centering
+  \begin{tabular}{c|c}
+    \hline
+    Connection  & Usage  \\
+    \hline
+    DAC0      & Writing DC motor voltage \\
+    CIO2      & Reading and Reseting counter \\
+    EIO0      & Reading, if the head is down \\
+    EIO1      & Writing to head goes down \\
+    EIO2      & Reading, if the head is up \\
+    EIO3      & Writing to head goes down \\
+    EIO5      & Writing to turn the rotation on/off \\
+    \hline
+  \end{tabular}
+  \caption{Labjack Connections and addresses used in the program.}
+  \label{tab:LabJackConnection}
+\end{table}
+
+More information about this regulator can be found on the official pages of
+LabJack Company \url{http://labjack.com}. On these pages, the software
+package can be downloaded under the LabJack~T7 bookmark. To connect to LabJack~T7, the
+\textit{Kipling} program serves. 
+
+\section{Communication}
+\label{sec:Communication}
+
+Communication is done using TCP/IP protocol. Each device, namely PC,
+Eurotherm and LabJack, must have defined its own unique IP address and all
+devices have to be in local area network. Program is designed to be able to
+control two PM-04n instruments simultaneously, so be sure, each device has its
+own unique IP address. 
+
+IP address of Eurotherm, can be found/changed using the official software of
+Eurotherm Company, which was mentioned at the end of the Section
+\ref{sec:Eurotherm}. LabJack IP address can be found/changed with the official
+software of the LabJack Company - Section \ref{sec:LabJack}. Predefined
+addresses are shown in Table~\ref{tab:IPAddresses} - please, change them with
+caution. 
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|c|c|}
+    \hline
+    Instrument  & Device & IP  \\
+    \hline \hline
+                              & PC & 192.168.1.2 \\
+    \hline
+    \multirow{2}{*}{PM-04n 1} & Eurotherm & 192.168.1.233 \\
+                              & LabJack   & 192.168.1.208 \\
+    \hline
+    \multirow{2}{*}{PM-04n 2} & Eurotherm & 192.168.1.234 \\
+                              & LabJack   & 192.168.1.209 \\
+    \hline
+  \end{tabular}
+  \caption{IP addresses.}
+  \label{tab:IPAddresses}
+\end{table}
+
+
+
+
+
+
+
+
+\chapter{Program}
+\label{ch:Program}
+
+\section{Installation}
+
+There is no installation package for PM-04n controlling software. There are only
+a few files, which have to be copied into selected directory on hard drive (I
+recommend using C:/Program Files/Plastometer/*). Please, make sure, that users
+have read/write/modify privileges in that directory to avoid the data loss.
+
+\subsection{File System}
+
+Files needed by program are shown in Figure~\ref{fig:FileSystem}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/FileSystem.png}
+  \caption{File System}
+  \label{fig:FileSystem}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{libmbusmaster.dll, sqlite3.dll} \\
+    These are the external libraries which program needs to read/save data and
+    to communicate with Eurotherm regulator.
+  \item \textbf{marklar.db} \\
+    Stores all measurements. To create back-up of measured data, please, store
+    this file. 
+  \item \textbf{Plastometr.exe} \\
+    Executable file by which the program is started. 
+  \item \textbf{Plastometr.ini} \\
+    Configuration file, which stores the configuration. 
+  \item \textbf{langauge/CZ.ini, EN.ini, GE.ini} \\
+    Different language versions of program are loaded from these files.
+  \item \textbf{language/Translator.exe} \\
+    Little application for simple translation between different language
+    versions.
+\end{itemize}
+
+\section{Built-in Constants, Definitions}
+\label{sec:BulitInConstants}
+
+Although there are some values, user can change in GUI of the program, there are
+also some fixed, unchangeable, built-it constants, which are hidden from user. 
+
+\begin{itemize}
+  \item \textbf{MIN\_TEMP\_MOVE = 240 $^{\circ}$C} \\
+    When the measurement is running, then the movement of head is blocked by the
+    program, if the temperature is below this value. Reason: Stannum in furnace
+    could have not be melted and the user could damage the instrument.  
+  \item \textbf{MAX\_TEMP = 600 $^{\circ}$C} \\
+    When the measurement is running and the temperature ramp is on, this is the
+    temperature, at which the measurement will be stopped by the program.
+    Reason: Eurotherm regulator has built-in safety relay, which turns the
+    heating off at MAX\_TEMP.
+  \item \textbf{QUIT\_TEMP = 20 $^{\circ}$C} \\
+    When the program is quit and regulators are still connected, this
+    temperature is written on regulators. Reason: Instruments may be still on.
+    This should ensure, the instrument will cool down.
+  \item \textbf{TOLER\_TEMP = 5 $^{\circ}$C} \\
+    If the program has to check, if the desired temperature $t_0$ has been
+    reached, then this is the allowed tolerance, i.e., if the temperature is in
+    interval $(t_0 - {\rm TOLER\_TEMP}, t_0 + {\rm TOLER\_TEMP})$, then 
+    $t_0$ is assumed to be reached.  
+  \item \textbf{RAMP\_TEMP = 3 $^{\circ}$C/min} \\
+    The rate the furnace is increasing its temperature with time during a
+    measurement.
+  \item \textbf{STAB\_TIME = 600 s} \\
+    During measurement, when the retort goes down to the furnace, this is the
+    dead time, during which the temperature in furnace has time to stabilize. If it
+    stabilizes, then measurement goes on, if not, the measurement stops. 
+  \item \textbf{TOLER\_TEST = 50} \\
+    When the sample is prepared, the user has chance to perform a test on
+    sample, i.e. try to shortly attach voltage three times greater than the voltage
+    attached during the measurement. If there is fewer than 50 pulses counted
+    during the test, the test is marked as OK.
+\end{itemize}
+
+Each partial measurement has as a result 5 constants
+
+\begin{itemize}
+  \item \textbf{T1} \\
+    Temperature, at which the first pulse was measured.
+  \item \textbf{T2} \\
+    Temperature, at which the maximum value of pulses per minute was reached.
+  \item \textbf{T3} \\
+    Temperature, at which the last pulse was measured.
+  \item \textbf{fmax} \\
+    Maximum value of pulses per minute measured. This occurs at temperature
+    \textit{T2}.
+  \item \textbf{ftotal} \\
+    Total value of pulses measured during measurement. 
+\end{itemize}
+
+\section{Graphical User Interface}
+
+In this Section, the basic blocks of the program GUI (graphical user interface)
+are described. In can be seen, that most of the following figures, contain the
+blue question mark in it. By clicking on this question mark, a little help is
+displayed inside the program, which, in the most cases, should answer an user
+question. For more concise information about GUI, you are welcome in this
+Section. 
+
+\subsection{Top Panel}
+\label{sec:TopPanel}
+
+\textit{Top panel} is shown in Figure~\ref{fig:TopPanel}. It can be seen, the
+\textit{Top Panel} is divided into two parts. The top part serves for switching
+between PM-04n instruments, the bottom part offers some basic features including
+saving measurements/connecting to regulators/starting measurement.
+
+Firstly, let's look at the structure of the top part. User can switch between 3
+tabs. The first two tabs are named according to the following logic
+
+\begin{itemize}
+  \item \textbf{Instrument Name} \\
+    The name of the instrument the tab switches to. This can be changed in the
+    \textit{Settings} bookmark (see Section~\ref{sec:Settings}). In
+    Figure~\ref{fig:TopPanel}, the instruments are named \textit{Left} and
+    \textit{Right}.
+  \item \textbf{Measurement Number} \\
+    Each measurement has its own unique number. Here is shown the number of
+    active measurement. If the number is \textit{\#-1}, then the measurement is
+    new and not saved yet. After saving, the number is automatically assigned.
+  \item \textbf{Connection Status} \\
+    \textit{CONNECTED} or \textit{DISCONNECTED}. 
+  \item \textbf{Measuring Status} \\
+    \textit{MEASURING} or \textit{PAUSED}. In the first case, the measured
+    temperature and dd/min are shown also. 
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/TopPanel.png}
+  \caption{Top Panel}
+  \label{fig:TopPanel}
+\end{figure}
+
+The last tab contains only \textit{Instrument 1 Name $|$ Instrument 2 Name} and
+should be used during measurement, where I recommend the program
+lookup as shown in Figure~\ref{fig:RecommendeSetting}.
+
+The bottom part of the \textit{Top Panel} contains some image buttons, which
+have some built-in hint help. These buttons are
+
+\begin{itemize}
+  \item \textbf{Create a New Measurement} \\
+    A new measurement is prepared. Data are cleared, graph emptied and the
+    \textit{Measurement Number} is changed to $-1$. This number changes after
+    saving the measurement. 
+  \item \textbf{Save/Update Measurement} \\
+    The actual measurement is either saved or updated.
+  \item \textbf{Create a Protocol and Export Data} \\
+    There is a fixed path, where all the protocols and data are exported. This
+    path is defined in configuration file \textit{Plastometr.ini} under
+    \textit{ProtocolPATH=} and can be changed here. By default, this path is set
+    to \textit{/Desktop/Protocols/}. Inside this directory, program creates a
+    new directory with the structure
+
+    \textit{MeasurementNumber\_SampleName\_SomeOtherNumber/} 
+    
+    and adds two files in it. First of these is a protocol in pdf format,
+    which is shown in Section~\ref{sec:Protocol} and the second is exported data
+    in txt format, which is described in more details in
+    Section~\ref{sec:DataExport}.  
+  \item \textbf{Create a Connection with Regulators} \\
+    Connects to both regulators. There are some messages which should help
+    detect a problem, if there is any. If the connection is not successful, try
+    to connect again.
+  \item \textbf{Disconnect from Regulators} \\
+    Connection to both regulators is closed. If program is measuring, then the
+    measurement is stopped.
+  \item \textbf{Start Measurement} \\
+    Starts the measurement and the periodic reading data from instrument. The
+    starting temperature (see Section~\ref{sec:MeasurementControlPanel}) is
+    automatically written and \textit{Settings} and a\textit{List of
+    Measurements} bookmarks are disabled. Note that buttons controlling the head
+    movement up/down are enabled only when temperature is above a certain
+    threshold (see Section~\ref{sec:BulitInConstants}).  
+  \item \textbf{Stop Measurement} \\
+    Stops the measurement and the periodic reading data from instrument. The
+    head rotation is disabled, \textit{Settings} and \textit{List of
+    Measurements} bookmarks are enabled and the buttons controlling the head
+    movement up/down are enabled.  
+  \item \textbf{Language Buttons} \\
+    Switches between different language versions of the program. 
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.35]{Figures/RecommendedSetting.png}
+  \caption{Recommended program lookup for measuring on two PM-04n's
+  simultaneously.}
+  \label{fig:RecommendeSetting}
+\end{figure}
+
+\subsection{List of Measurements}
+\label{sec:ListOfMeasurements}
+
+First of the bookmarks on the left is the \textit{List of Measurements}
+bookmark. It is shown in Figure~\ref{fig:ListOfMeasurements} and its purpose is
+to search in the saved measurements. Measurement is loaded after mouse click on
+it in the table. There are two ways, how to find the desired measurement.  
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/ListOfMeasurements.png}
+  \caption{List of Measurements bookmark}
+  \label{fig:ListOfMeasurements}
+\end{figure}
+
+\begin{enumerate}
+  \item \textbf{According to the Measurement Number} \\
+    In this case, you simply enter the measurement number into the
+    \textit{Measurement Number} edit. If the measurement with this number
+    exists, it is shown in table, if not, the table is left empty.
+  \item \textbf{According to the Remaining Parameters} \\
+    There are 4 additional parameters, you can search by, namely
+    \begin{itemize}
+      \item Sample 
+      \item Operator
+      \item Date (in format \textit{YYYY-MM-DD})
+      \item Finished
+    \end{itemize}
+    In the table, the measurements fulfilling all the criteria, you enter, are
+    displayed. In the example in Figure~\ref{fig:ListOfMeasurements}, the
+    measurements performed in \textit{2015-07} with operator starting at
+    \textit{Loch} are displayed. 
+\end{enumerate}
+
+Next, the number of found measurements is shown. You can go to the last
+measurement by pressing the \textit{Last Measurement} button. It is also
+possible to remove selected measurement by pressing the \textit{Remove
+Measurement} button at the bottom.
+
+\subsection{Settings}
+\label{sec:Settings}
+
+Next to the \textit{List of Measurements} bookmark, there is the
+\textit{Settings} bookmark. This is shown in Figure~\ref{fig:Settings}. This
+bookmark is divided into several blocks, each of them has its own built-in help. 
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/Settings.png}
+  \caption{Settings bookmark}
+  \label{fig:Settings}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Save Settings} \\
+    This button simply saves the current settings. These include not only the
+    values displayed in the \textit{Settings} bookmark, but some values shown
+    elsewhere in the GUI of the program. These include the \textit{Start} and
+    \textit{Finish Temperature} (Figure~\ref{fig:MeasurementControlPanel}) and
+    the current axis settings (Figure~\ref{fig:Graph}).
+  \item \textbf{Instrument, LabJack IP, Eurotherm IP} \\
+    Instrument characterizes the name of the instrument and is displayed at the
+    top of the \textit{Top Panel} (Figure~\ref{fig:TopPanel}). Instrument is defined by
+    IP addresses of two regulators, which must be entered here.
+  \item \textbf{Company Name, Name Supplement} \\
+    Are shown in the head of the protocol, as it is demonstrated in 
+    Figure~\ref{fig:ProtocolFirstPage}.
+  \item \textbf{Data Reading Interval} \\
+    Interval, the data are read from the regulators. The pulses per minute are
+    displayed and calculated in this interval as well. 
+  \item \textbf{Calibration} \\
+    Calibration starts by the pressing the \textit{Calibrate} button. After
+    this, the voltage shown in the edit is written on the LabJack. Calibration
+    is done using the \textit{QWEASD} keys and is stopped either by pressing the
+    \textit{Save Settings} button, or by pressing the \textit{ESC} key.
+    Calibration is described in more detail in Section~\ref{sec:Calibration}
+  \item \textbf{Calibration Table} \\
+    Is delivered together with the temperature sensor. The row with values
+    $(500,2)$ means, that if regulator shows a temperature $500\,^{\circ}{\rm
+    C}$, than the real temperature is about $2\,^{\circ}{\rm C}$ higher. There
+    are two buttons over the table allowing adding/removing the selected row in
+    table.
+\end{itemize}
+
+\subsection{Measurement Information}
+\label{sec:MeasurementInformation}
+
+\textit{Measurement Information} bookmark contains the basic informations about the
+measurement and is shown in Figure~\ref{fig:MeasurementInformation}. It can be
+filled during the measurement. Some of these informations are used to search the
+measurement in the \textit{List of Measurement} bookmark described in
+Section~\ref{sec:ListOfMeasurements}, remaining informations are used in the
+head of the protocol, which is shown in Figure~\ref{fig:ProtocolFirstPage}. 
+
+\begin{itemize}
+  \item \textbf{Measurement Record} \\
+    Unique measurement number assigned to the measurement. This is done
+    automatically by the program after the first measurement save and cannot be
+    changed.
+  \item \textbf{Operator} \\
+    Name of the person performing the measurement. 
+  \item \textbf{Sample Name} \\
+    Short name of the measured sample.
+  \item \textbf{Finished} \\
+    If there is no interest in adding additional partial measurement into
+    measurement, then \textit{Finished} can be checked.
+  \item \textbf{Sample Characteristic} \\
+    Additional characteristic of the measured sample.
+  \item \textbf{Note} \\
+    Additional information e.g. about the non-standard measurement procedure.
+\end{itemize}
+
+It is recommended to save the measurement after editing this information. 
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/MeasurementInformation.png}
+  \caption{Measurement Information bookmark}
+  \label{fig:MeasurementInformation}
+\end{figure}
+
+\subsection{Measured Data}
+\label{sec:MeasuredData}
+
+\textit{Measured Data} bookmark contains the data measured during the measurement and is
+shown in Figure~\ref{fig:MeasuredData}. Table at the top contains the data
+measured during one concrete partial measurement. The partial
+measurement, which is displayed, is shown at the top. At the bottom, the results
+of partial measurements are shown and from the checked measurements, the
+final results are calculated. These are shown at the bottom. The meaning of the symbols
+used here, is defined in Section~\ref{sec:BulitInConstants}. More details to each building
+block follows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/MeasuredData.png}
+  \caption{Measured Data bookmark}
+  \label{fig:MeasuredData}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Listing Between Partial Measurements} \\
+    Using buttons $<<$ and $>>$. Between these buttons, the
+    partial measurement number is shown together with the instrument, which
+    this partial measurement performed. 
+  \item \textbf{Table Time,Temperature,ddpm} \\
+    Shows the measured data for the selected partial measurement. ddpm are the pulses
+    per minute. 100 pulses equals one revolt. 
+  \item \textbf{Determine T1, Determine T3} \\
+    Although T1 and T3 are determined automatically by the program, user can
+    change these values by moving the corresponding points on the graph.
+    When these buttons are pressed, program determines T1 or T3 again. 
+  \item \textbf{Table T1,T2,T3,fmax,ftotal} \\
+    Results for partial measurements.
+  \item \textbf{Results at the Bottom} \\
+    From the checked measurements, the average and variance of measurement
+    characteristic values are calculated.
+\end{itemize}
+
+In protocol, only checked partial measurements are used. This can be seen
+from Figure~\ref{fig:ProtocolFirstPage}.
+
+\subsection{Measurement Control Panel}
+\label{sec:MeasurementControlPanel}
+
+This panel is the basic operational block of the program and is shown in
+Figure~\ref{fig:MeasurementControlPanel}. It shows the actual values read
+from the instrument, allows user to write a temperature, set the measurement
+final temperature, manipulate with the measurement head, finish the measurement
+and guide the user around the measurement. The description of building
+blocks follows.
+
+\begin{itemize}
+  \item \textbf{Temperature} \\
+    Actual temperature value from regulator. \textit{Start temperature} is the
+    temperature at which the measurements starts, \textit{Final temperature} is
+    the temperature at which the measurement will be stopped by the program
+    automatically.
+  \item \textbf{ddpmin/ddTotal} \\
+    Actual value of pulses per minute (ddpmin) and total number of pulses
+    (ddTotal).
+  \item \textbf{Position} \\
+    Shows the head position.
+  \item \textbf{Move} \\
+    Controls the movement of the measuring head. If the measurement is in
+    progress, then these buttons are disabled for temperature below a certain
+    threshold defined in Section~\ref{sec:BulitInConstants}.
+  \item \textbf{Start a New Partial Measurement} \\
+    Prepares a new partial measurement inside the opened measurement. 
+  \item \textbf{Finish} \\
+    Completes the measurement, i.e. forces the measuring head to move up, turns
+    the rotation off and writes the starting temperature, so the instrument is
+    prepared for a new measurement as soon as possible. 
+  \item \textbf{Preparation of Measurement} \\
+    Sample preparation. Checks three events:
+    \begin{enumerate}
+      \item \textbf{Furnace Heated up} \\
+        The furnace has to be heated up to the starting temperature. If the
+        error is smaller than the allowed tolerance defined in
+        Section~\ref{sec:BulitInConstants}, the \textit{OK} is displayed.
+      \item \textbf{Sample Test} (ARBITRARY) \\
+        User can try to attach shortly a voltage three times greater than the
+        voltage applied during the measurement, to test, if the sample is prepared
+        correctly. The test starts by pressing the \textit{Test} button and ends
+        automatically. Test is assumed to be successful, if a number of pulses
+        counted during test is smaller than built-in constant defined in
+        Section~\ref{sec:BulitInConstants}. \textit{OK} is then displayed.
+      \item \textbf{Sample Position} \\
+        When the furnace is heat up, user must put the sample inside the
+        furnace, i.e. by pressing the \textit{Move Down} button. If the position
+        \textit{Down} is read, then \textit{OK} is displayed.
+    \end{enumerate}
+  \item \textbf{Stabilization Retort Temperature} \\
+    Program waits time defined in Section~\ref{sec:BulitInConstants} to the
+    temperature in furnace stabilizes. If it happens, the measurement continues
+    automatically after time counter. 
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/MeasurementControllPanel.png}
+  \caption{Measurement control panel}
+  \label{fig:MeasurementControlPanel}
+\end{figure}
+
+\subsection{Graph}
+\label{sec:Graph}
+
+The purpose of this block is to graphically display a measured data of one
+selected partial measurement. This block is shown in Figure~\ref{fig:Graph} and
+you can see, next to the red line representing the measured data, three blue
+points are displayed - these are the three characteristic temperature points T1,
+T2 and T3 defined in Section~\ref{sec:BulitInConstants}. Above the graph, there
+are some options to configure the graph axes. 
+
+\begin{itemize}
+  \item \textbf{X Axis} \\
+    You can switch between \textit{Absolute} and \textit{Relative} options. In
+    \textit{Absolute} case, the axis range is entered manually and graph is
+    repainted after pressing \textit{Enter} key. In \textit{Relative} case, the
+    axis range is chosen automatically to comprise all the measured data. When
+    a protocol is created (see Section~\ref{sec:Protocol}), then all graphs
+    in it are set according to this settings.
+  \item \textbf{Y Axis} \\
+    What holds for the X Axis is holds for Y Axis as well. There is, however,
+    one additional option for the Y Axis: You can switch between logarithmic and
+    linear scale.
+  \item \textbf{Graph} \\
+    Red line represents the measured data and three blue-square points represent
+    the three significant temperatures T1, T2 and T3 defined in
+    Section~\ref{sec:BulitInConstants}. The T1 and T3 can be dragged by the
+    mouse, but the T2 is fixed, unchangeable.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/Graph.png}
+  \caption{Graph}
+  \label{fig:Graph}
+\end{figure}
+
+\subsection{Protocol}
+\label{sec:Protocol}
+
+When the \textit{Create a Protocol and Export Data} button (see
+Section~\ref{sec:TopPanel}) is pressed, two files are created. First of these
+files is the measurement protocol in pdf format, whose structure is described in
+this Section, the second file is the exported data in txt format. Its structure
+is described in the next Section. The path, where these files are saved, is
+defined in Section~\ref{sec:TopPanel}. 
+
+After files are created, the protocol is opened automatically by the default
+program for .pdf extension (I recommend the use of \textit{Adobe Acrobat
+Reader}, but other programs should serve as well). Using this program, you can
+easily print the created protocol. 
+
+The first page of the protocol has the structure shown in
+Figure~\ref{fig:ProtocolFirstPage}. 
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.5]{Figures/ProtocolFirstPage.png}
+  \caption{Example of the first protocol page.}
+  \label{fig:ProtocolFirstPage}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[scale=0.75]{Figures/ProtocolNextPage.png}
+  \caption{The second protocol page. The first page of this protocol is shown
+    in Figure \ref{fig:ProtocolFirstPage}.}
+  \label{fig:ProtocolNextPage}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Title} \\
+    Is loaded from the \textit{Settings} bookmark (Section~\ref{sec:Settings}).
+  \item \textbf{Information above Results} \\
+    Is loaded from the \textit{Measurement Information} bookmark
+    (Section~\ref{sec:MeasurementInformation}). Only \textit{Date} is not shown
+    in this bookmark, it is loaded directly from the database.
+  \item \textbf{Results} \\
+    Are loaded from the \textit{Measured Data} bookmark
+    (Section~\ref{sec:MeasuredData}). You can see, that only checked partial
+    measurements are included in the protocol and that the mean and variance is
+    calculated from these measurements only. 
+  \item \textbf{Sample, Note} \\
+    Are loaded from the \textit{Measurement Information} bookmark
+    (Section~\ref{sec:MeasurementInformation}).
+\end{itemize}
+
+The second (and any other) page of the protocol has the structure shown in
+Figure~\ref{fig:ProtocolNextPage} and generally, it displays the results of
+partial measurements shown in the first protocol page.
+
+\begin{itemize}
+  \item \textbf{Header} \\
+    Partial measurement number together with the results of characteristic
+    values. These values are the values shown in one row in the table from
+    Figure~\ref{fig:ProtocolFirstPage}.
+  \item \textbf{Graph} \\
+    Uses the axis settings defined in Section~\ref{sec:Graph}.
+\end{itemize}
+
+\subsection{Data Export}
+\label{sec:DataExport}
+
+Next to the protocol, the data are exported into separate file. This serves for
+further processing in table-oriented programs such as \textit{Microsoft Excel}.
+The structure of data exported is shown in Figure~\ref{fig:ExportDat}.
+
+By closer look at the data structure on the left, you can see, the data are
+semicolon separated values, which can be easily loaded as table, so you get 
+the table structure on the right.
+
+Each partial measurement is displayed on three columns with the structure
+
+\begin{itemize}
+  \item \textbf{Finished} \\
+    In the first row, there is shown, if the measurement is checked as
+    \textit{Finished} or not. This means, also the results of the unchecked
+    measurements are exported.
+  \item \textbf{Characteristic Values} \\
+    Next 5 rows contain the measurement characteristic values defined in
+    Section~\ref{sec:BulitInConstants}.
+  \item \textbf{Measured Data} \\
+    Table containing all the data measured during the partial measurement. 
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[scale=0.75]{Figures/ExportDat.png}
+  \caption{Data exported by the program.}
+  \label{fig:ExportDat}
+\end{figure}
+
+
+
+
+
+
+
+\chapter{Usage}
+\label{ch:Usage}
+
+This Chapter describes the basic instructions to perform a measurement and
+calibration on PM-04n instrument. Some informations from the previous chapters
+are, for convenience, written here as well, but for more information, a
+references to previous Sections are provided.  
+
+\section{Measurement}
+\label{sec:Measurement}
+
+\subsection{Select the Instrument}
+
+Firstly, it is needed to select the instrument, you are going to measure on.
+For this purpose, the top of the \textit{Top Panel} serves. This is shown in
+Section~\ref{sec:TopPanel}.
+
+\subsection{Connect to the Regulators}
+
+Next, you must connect program to regulators. This is done using the
+\textit{Create a Connection with Regulators} button, which is the fourth button
+on the \textit{Top Panel} (Section~\ref{sec:TopPanel}).
+
+If there is any problem with connection, you are welcome to try pressing the
+\textit{Create a Connection with Regulators} button a few times (if the PM-04n
+instrument was turned on recently, the regulators can not be initialized yet).
+Program has built-in messages to help you indicate the problem. When the
+connection is successful, the program let you know about the success.
+
+If you are unable connect to regulators, see Section~\ref{sec:Communication} for
+more details - probably, there is a problem with the network settings and you will
+need an assistance from the network administrator. 
+
+\subsection{Select the Measurement}
+\label{sec:SelectMeasurement}
+
+Before the measurement starts, it is needed to choose, where the measurement
+will be added. Basically, there are two possibilities
+
+\begin{enumerate}
+  \item \textbf{Add a Partial Measurement to an Existing Measurement}
+    You have a sample, which was already measured and the measurement was
+    successfully saved and you want to add to this measurement a new partial
+    measurement.
+
+    You must load your measurement using the \textit{List of Measurements} bookmark
+    (Section~\ref{sec:ListOfMeasurements}) and press the \textit{Start a New
+    Partial Measurement} button in the \textit{Measurement Control Panel}
+    (Section~\ref{sec:MeasurementControlPanel}).
+
+  \item \textbf{Start a New Measurement}
+    You have a new sample, which was not measured yet. By pressing the
+    \textit{Create a New Measurement} button in the \textit{Top Panel}
+    (it is the first button, Section~\ref{sec:TopPanel}), a new measurement is
+    prepared.
+
+    I recommend to fill \textit{Operator} and \textit{Sample Name} in the
+    \textit{Measurement Information} bookmark
+    (Section~\ref{sec:MeasurementInformation}) and save the measurement using
+    the \textit{Save/Update Measurement} button at the \textit{Top Panel}
+    (it is the second button, Section~\ref{sec:TopPanel}). 
+\end{enumerate}
+
+Generally, you can edit the information in \textit{Measurement Information}
+bookmark (Section~\ref{sec:MeasurementInformation}) anytime, even during the
+measurement. If you make some changes to it, do not forget to save them.
+
+\subsection{Start the Measurement}
+
+Now, everything is prepared to measurement could start. This is done by pressing
+the \textit{Start Measurement} button at the \textit{Top Panel} (it is the
+sixth button, Section~\ref{sec:TopPanel}).
+
+By pressing this button, the Start Temperature is automatically written, but
+it can be changed easily using the \textit{Send} button in the
+\textit{Measurement Control Panel} (Section~\ref{sec:MeasurementControlPanel}).
+Please, check, if the \textit{Final Temperature} is set correctly as well.
+
+\begin{namedtheorem}[Note]
+  The \textit{List of Measurements} and \textit{Settings} bookmarks are
+  disabled, when the measurement is on. To enable them, you must press
+  \textit{Stop Measurement} button, which is next to the \textit{Start
+  Measurement} button. Use this with a caution.
+\end{namedtheorem}
+
+\begin{namedtheorem}[Note]
+  The movement of the measuring head is disabled, if the temperature in the
+  furnace is below the cutoff defined in Section~\ref{sec:BulitInConstants}.
+\end{namedtheorem}
+
+\subsection{Prepare Sample}
+\label{sec:PrepareSample}
+
+In this step, no interaction between user and program is needed. After retort is
+prepared and placed in the measuring head, continue to next step.
+
+\subsection{Test Sample (Arbitrary)}
+
+The sample test is arbitrary and is performed by pressing the \textit{Test}
+button in the \textit{Measurement Control Panel}
+(Section~\ref{sec:MeasurementControlPanel}). 
+
+\subsection{Wait for the Furnace is Heated Up}
+
+Wait until the furnace is heated up to the desired starting temperature. This is
+checked automatically by the program and user can see this in the
+\textit{Preparation of Measurement} part of the \textit{Measurement Control
+Panel} (Section~\ref{sec:MeasurementControlPanel}). If there is
+\textit{OK} next to the \textit{Furnace heated up}, you can proceed to next
+step.
+
+\begin{namedtheorem}[Note]
+  Every time, the program checks, if temperature has reached a desired value,
+  there is a built-in tolerance defined in Section~\ref{sec:BulitInConstants}.
+\end{namedtheorem}
+
+\subsection{Move Sample into the Furnace}
+
+By pressing the \textit{Move Down} button, the measuring head goes down to the
+furnace and measurement starts automatically. You are welcome to enter the next
+step. 
+
+\begin{namedtheorem}[Note]
+  The movement of the measuring head is disabled, if the temperature in the
+  furnace is below the cutoff defined in Section~\ref{sec:BulitInConstants}.
+\end{namedtheorem}
+
+\subsection{Make a Coffee}
+
+The measurement is now fully controlled by the program. Firstly, there is a fixed time
+interval, defined in Section~\ref{sec:BulitInConstants}, which program waits for
+temperature to stabilize after the sample entered the furnace. If the temperature
+stabilizes, the measurement goes on, if not, the measurement goes to the
+Stage~\ref{sec:FinishTheMeasurement}.
+
+After successful stabilization of temperature, program enables the temperature
+ramp (fixed value defined in Section~\ref{sec:BulitInConstants}) and sends the
+\textit{Final Temperature}. Next to this, the head starts to rotate with the
+voltage defined in \textit{Settings} bookmark (Section~\ref{sec:Settings}).
+
+If the \textit{Final Temperature} is reached, the measurement goes to the last
+stage. User can evoke this event by pressing the \textit{! Finish !} button in
+the \textit{Measurement Control Panel}
+(Section~\ref{sec:MeasurementControlPanel}).
+
+\begin{namedtheorem}[Note]
+  Every time, the program checks, if temperature has reached a desired value,
+  there is a built-in tolerance defined in Section~\ref{sec:BulitInConstants}.
+\end{namedtheorem}
+
+\subsection{Finish the Measurement}
+\label{sec:FinishTheMeasurement}
+
+Finalization of the measurement. Program moves the measuring head up, disables
+the temperature ramp, sends the \textit{Start Temperature} and disables the head
+rotation, so the instrument is prepared for next measurement as soon as
+possible. Measurement is saved automatically as well.
+
+If you want to make a new partial measurement, proceed to
+Stage~\ref{sec:PrepareSample}.
+
+Otherwise, stop the measurement by pressing \textit{Stop Measurement} button
+(the last button on the \textit{Top Panel}, Section~\ref{sec:TopPanel}) and
+continue to Stage~\ref{sec:SelectMeasurement}.
+
+
+\section{Calibration}
+\label{sec:Calibration}
+
+To perform a calibration, go to the \textit{Settings} bookmark
+(Section~\ref{sec:Settings}). Here, in part \textit{Calibration}, the
+\textit{Operating Voltage} item is located. This voltage has to be set during the
+process of calibration. The way, this voltage is set, is defined by the norm.
+
+To start the calibration, press the \textit{Calibrate} button (make sure, the
+program is connected to regulators). This causes the motor to start rotate. Now,
+by pressing the \textit{QWEASD} keys, find the voltage which satisfies the
+conditions stated by the norm. 
+
+Calibration ends either by pressing \textit{ESC} key (do not forget to save a new
+settings thereafter) or by pressing \textit{Save Settings} button. Both of these
+actions cause the rotation to stop.
+
+\end{document}
